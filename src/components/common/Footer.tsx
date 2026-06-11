@@ -1,8 +1,9 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 interface FooterProps {
   readonly copy: string;
-  readonly links: string[];
+  readonly links: Array<{ label: string; href: string }>;
 }
 
 export const Footer: React.FC<FooterProps> = ({ copy, links }) => {
@@ -14,13 +15,13 @@ export const Footer: React.FC<FooterProps> = ({ copy, links }) => {
         </span>
         <div className="flex gap-6">
           {links.map((link) => (
-            <a
-              key={link}
-              className="font-body-sm text-body-sm text-steel hover:text-primary transition-colors transition-opacity"
-              href="#"
+            <Link
+              key={link.label}
+              className="font-body-sm text-body-sm text-steel hover:text-primary transition-colors"
+              to={link.href}
             >
-              {link}
-            </a>
+              {link.label}
+            </Link>
           ))}
         </div>
       </div>

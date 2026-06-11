@@ -25,15 +25,6 @@ const AdminPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
   const fetchBookings = async () => {
     setIsLoading(true);
     try {
@@ -50,6 +41,15 @@ const AdminPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
