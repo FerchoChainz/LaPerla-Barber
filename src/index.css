@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-family: 'Hanken Grotesk', sans-serif;
+  }
+}
+
+.whisper-border {
+  border: 1px solid rgba(226,232,240,0.5);
+}
+
+.diffused-shadow {
+  box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+}
