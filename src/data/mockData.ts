@@ -77,6 +77,11 @@ export const homeData = {
   },
   footer: {
     copy: "© 2024 La Perla. Clinical Precision. Heritage Warmth.",
-    links: ["Services", "Portfolio", "Contact", "Location"],
+    links: [
+      { label: "Services", href: "/services" },
+      { label: "Portfolio", href: "/portfolio" },
+      { label: "Contact", href: "/contact" },
+      { label: "Location", href: "/location" }
+    ],
   },
 };
