@@ -9,29 +9,32 @@ import AdminPage from './pages/AdminPage';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import ScrollToAnchor from './components/common/ScrollToAnchor';
+import { StoreProvider } from './context/StoreContext';
 
 function App() {
   return (
-    <Router>
-      <ScrollToAnchor />
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/gallery" element={<GalleryPage />} />
-        <Route path="/services" element={<ServicesPage />} />
-        <Route path="/portfolio" element={<PortfolioPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/location" element={<LocationPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route 
-          path="/admin" 
-          element={
-            <ProtectedRoute>
-              <AdminPage />
-            </ProtectedRoute>
-          } 
-        />
-      </Routes>
-    </Router>
+    <StoreProvider>
+      <Router>
+        <ScrollToAnchor />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/portfolio" element={<PortfolioPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/location" element={<LocationPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute>
+                <AdminPage />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </Router>
+    </StoreProvider>
   );
 }
 

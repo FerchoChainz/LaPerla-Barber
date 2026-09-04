@@ -1,214 +1,220 @@
-import React, { useEffect, useState } from 'react';
-import { Header } from '../components/common/Header';
-import { Footer } from '../components/common/Footer';
-import { homeData } from '../data/mockData';
-import { supabase } from '../lib/supabase';
+import React, { useState } from 'react';
+import { useStore } from '../context/StoreContext';
+import { AdminLayout } from '../components/layout/AdminLayout';
+import type { AdminTab } from '../components/layout/AdminLayout';
+import type { Location } from '../types';
+import { LocationTable } from '../components/locations/LocationTable';
+import { LocationModal } from '../components/locations/LocationModal';
+import { DeleteConfirmModal } from '../components/common/DeleteConfirmModal';
 
-interface Booking {
-  id: string;
-  created_at: string;
-  name: string;
-  email: string;
-  service: string;
-  booking_date: string;
-  status: string;
-}
+const AdminContent: React.FC = () => {
+  const {
+    locations,
+    addLocation,
+    updateLocation,
+    deleteLocation,
+    filteredServices,
+    filteredStaff,
+    filteredAppointments,
+    activeLocationId,
+    activeLocation,
+  } = useStore();
 
-interface Toast {
-  message: string;
-  type: 'success' | 'error';
-}
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
 
-const AdminPage: React.FC = () => {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<Toast | null>(null);
-
-  const fetchBookings = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('bookings')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-      setBookings(data || []);
-    } catch (err: any) {
-      console.error('Error fetching bookings:', err);
-      setError('Could not load bookings. Please check your Supabase connection.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const updateStatus = async (id: string, newStatus: string) => {
-    try {
-      const { error: updateError } = await supabase
-        .from('bookings')
-        .update({ status: newStatus })
-        .eq('id', id);
-
-      if (updateError) throw updateError;
-      
-      setBookings(bookings.map(b => b.id === id ? { ...b, status: newStatus } : b));
-      showToast(`Booking marked as ${newStatus}`);
-    } catch (err: any) {
-      showToast('Error updating status', 'error');
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const scopeLabel = activeLocationId === 'ALL'
+    ? 'All Locations (Global Network)'
+    : activeLocation ? `${activeLocation.name} (${activeLocation.city}, ${activeLocation.state})` : 'Selected Location';
 
   return (
-    <div className="min-h-screen flex flex-col bg-canvas text-ink relative">
-      <Header 
-        {...homeData.header} 
-        onBookClick={() => {}} 
-      />
-      
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`fixed bottom-8 right-8 z-[200] px-6 py-4 rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 duration-300 flex items-center gap-3 ${
-          toast.type === 'success' ? 'bg-ink text-surface' : 'bg-error text-surface'
-        }`}>
-          <span className="material-symbols-outlined">
-            {toast.type === 'success' ? 'check_circle' : 'error'}
-          </span>
-          <p className="font-body-md font-bold">{toast.message}</p>
-        </div>
-      )}
+    <AdminLayout>
+      {(activeTab: AdminTab) => {
+        switch (activeTab) {
+          case 'locations':
+            return (
+              <>
+                <LocationTable
+                  locations={locations}
+                  onAddLocation={() => setIsAddModalOpen(true)}
+                  onEditLocation={(loc) => setEditingLocation(loc)}
+                  onDeleteLocation={(loc) => setDeletingLocation(loc)}
+                />
 
-      <main className="flex-grow pt-24 pb-16 px-gutter">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex justify-between items-end">
-            <div>
-              <span className="font-mono-label text-mono-label text-steel uppercase tracking-widest">Internal Access</span>
-              <h1 className="font-display-lg text-display-lg text-ink">Admin Dashboard</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={fetchBookings}
-                className="text-steel hover:text-primary flex items-center gap-2 transition-colors"
-              >
-                <span className="material-symbols-outlined">refresh</span>
-                <span className="font-mono-label">Refresh</span>
-              </button>
-              <button 
-                onClick={handleLogout}
-                className="text-steel hover:text-error flex items-center gap-2 transition-colors border-l border-border pl-4"
-              >
-                <span className="material-symbols-outlined">logout</span>
-                <span className="font-mono-label">Logout</span>
-              </button>
-            </div>
-          </div>
+                <LocationModal
+                  isOpen={isAddModalOpen || editingLocation !== null}
+                  location={editingLocation}
+                  onClose={() => {
+                    setIsAddModalOpen(false);
+                    setEditingLocation(null);
+                  }}
+                  onSave={(data) => {
+                    if (editingLocation) {
+                      updateLocation(editingLocation.id, data);
+                    } else {
+                      addLocation(data);
+                    }
+                  }}
+                />
 
-          {error && (
-            <div className="bg-error/10 text-error p-6 rounded-2xl border border-error/20 font-body-md">
-              {error}
-            </div>
-          )}
+                <DeleteConfirmModal
+                  isOpen={deletingLocation !== null}
+                  title="Delete Location"
+                  itemName={deletingLocation?.name}
+                  onClose={() => setDeletingLocation(null)}
+                  onConfirm={() => {
+                    if (deletingLocation) {
+                      deleteLocation(deletingLocation.id);
+                      setDeletingLocation(null);
+                    }
+                  }}
+                />
+              </>
+            );
 
-          <div className="bg-surface rounded-[2.5rem] whisper-border shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-surface-container-low border-b border-border">
-                    <th className="p-6 font-mono-label text-steel uppercase">Client</th>
-                    <th className="p-6 font-mono-label text-steel uppercase">Service</th>
-                    <th className="p-6 font-mono-label text-steel uppercase">Date</th>
-                    <th className="p-6 font-mono-label text-steel uppercase">Status</th>
-                    <th className="p-6 font-mono-label text-steel uppercase text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {isLoading ? (
-                    <tr>
-                      <td colSpan={5} className="p-12 text-center text-steel animate-pulse font-body-lg">
-                        Loading clinical records...
-                      </td>
-                    </tr>
-                  ) : bookings.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="p-12 text-center text-steel font-body-lg">
-                        No appointments found.
-                      </td>
-                    </tr>
-                  ) : (
-                    bookings.map((booking) => (
-                      <tr key={booking.id} className="hover:bg-surface-container-lowest transition-colors">
-                        <td className="p-6">
-                          <p className="font-body-lg font-bold text-ink">{booking.name}</p>
-                          <p className="font-body-sm text-secondary">{booking.email}</p>
-                        </td>
-                        <td className="p-6">
-                          <span className="font-body-md text-ink">{booking.service}</span>
-                        </td>
-                        <td className="p-6">
-                          <p className="font-mono-data text-mono-data text-ink whitespace-nowrap">
-                            {formatDate(booking.booking_date)}
-                          </p>
-                        </td>
-                        <td className="p-6">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : 
-                            booking.status === 'cancelled' ? 'bg-red-100 text-red-700' : 
-                            'bg-amber/20 text-amber'
-                          }`}>
-                            {booking.status}
+          case 'services':
+            return (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center bg-surface p-6 rounded-3xl border border-border shadow-sm">
+                  <div>
+                    <h2 className="text-2xl font-headline-md font-bold text-ink">Services & Pricing Catalog</h2>
+                    <p className="text-sm text-secondary font-body-sm mt-1">
+                      Current Scope: <span className="font-bold text-primary">{scopeLabel}</span> ({filteredServices.length} services available)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {filteredServices.map((srv) => (
+                    <div key={srv.id} className="bg-surface p-6 rounded-3xl border border-border shadow-sm flex flex-col justify-between space-y-4">
+                      <div>
+                        <div className="flex justify-between items-start">
+                          <span className="px-3 py-1 bg-surface-container-high text-steel font-mono-label text-[10px] font-bold uppercase rounded-full">
+                            {srv.category}
                           </span>
-                        </td>
-                        <td className="p-6 text-right space-x-2 whitespace-nowrap">
-                          <button 
-                            onClick={() => updateStatus(booking.id, 'confirmed')}
-                            className="text-steel hover:text-green-600 transition-colors p-2"
-                            title="Confirm"
-                          >
-                            <span className="material-symbols-outlined">check_circle</span>
-                          </button>
-                          <button 
-                            onClick={() => updateStatus(booking.id, 'cancelled')}
-                            className="text-steel hover:text-error transition-colors p-2"
-                            title="Cancel"
-                          >
-                            <span className="material-symbols-outlined">cancel</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </main>
+                          <span className="text-xl font-mono-data font-bold text-primary">${srv.price}</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-ink mt-3">{srv.name}</h3>
+                        <p className="text-xs text-secondary font-body-sm mt-1">{srv.description}</p>
+                      </div>
+                      <div className="pt-3 border-t border-border flex justify-between text-xs text-steel font-mono-data">
+                        <span>⏱️ {srv.duration} mins</span>
+                        <span>{srv.locationIds.includes('ALL') ? 'All Locations' : `${srv.locationIds.length} location(s)`}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
 
-      <Footer {...homeData.footer} />
-    </div>
+          case 'staff':
+            return (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center bg-surface p-6 rounded-3xl border border-border shadow-sm">
+                  <div>
+                    <h2 className="text-2xl font-headline-md font-bold text-ink">Staff & Master Barbers</h2>
+                    <p className="text-sm text-secondary font-body-sm mt-1">
+                      Current Scope: <span className="font-bold text-primary">{scopeLabel}</span> ({filteredStaff.length} team members)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {filteredStaff.map((stf) => (
+                    <div key={stf.id} className="bg-surface p-6 rounded-3xl border border-border shadow-sm space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
+                          {stf.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="text-base font-bold text-ink leading-tight">{stf.name}</h3>
+                          <p className="text-xs font-mono-label text-steel uppercase">{stf.role}</p>
+                        </div>
+                      </div>
+                      <div className="pt-2 border-t border-border text-xs text-secondary space-y-1 font-body-sm">
+                        <p>📧 {stf.email}</p>
+                        <p>📞 {stf.phone}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+
+          case 'appointments':
+            return (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center bg-surface p-6 rounded-3xl border border-border shadow-sm">
+                  <div>
+                    <h2 className="text-2xl font-headline-md font-bold text-ink">Appointments Schedule</h2>
+                    <p className="text-sm text-secondary font-body-sm mt-1">
+                      Current Scope: <span className="font-bold text-primary">{scopeLabel}</span> ({filteredAppointments.length} bookings)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-surface rounded-3xl border border-border shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-surface-container-low border-b border-border">
+                          <th className="p-4 font-mono-label text-steel text-xs uppercase">Client</th>
+                          <th className="p-4 font-mono-label text-steel text-xs uppercase">Service / Staff</th>
+                          <th className="p-4 font-mono-label text-steel text-xs uppercase">Date & Time</th>
+                          <th className="p-4 font-mono-label text-steel text-xs uppercase">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {filteredAppointments.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="p-8 text-center text-steel font-body-md">
+                              No appointments found for selected location scope.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredAppointments.map((apt) => (
+                            <tr key={apt.id} className="hover:bg-surface-container-lowest transition-colors">
+                              <td className="p-4">
+                                <p className="font-body-md font-bold text-ink">{apt.clientName}</p>
+                                <p className="font-body-sm text-xs text-secondary">{apt.clientEmail} • {apt.clientPhone}</p>
+                              </td>
+                              <td className="p-4">
+                                <p className="font-body-md text-ink">{apt.serviceId}</p>
+                                <p className="font-body-sm text-xs text-steel">Barber: {apt.staffId}</p>
+                              </td>
+                              <td className="p-4">
+                                <p className="font-mono-data text-xs text-ink">{apt.date} at {apt.time}</p>
+                              </td>
+                              <td className="p-4">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                  apt.status === 'confirmed' ? 'bg-emerald-100 text-emerald-800' :
+                                  apt.status === 'cancelled' ? 'bg-rose-100 text-rose-800' :
+                                  'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {apt.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+
+          default:
+            return null;
+        }
+      }}
+    </AdminLayout>
   );
+};
+
+export const AdminPage: React.FC = () => {
+  return <AdminContent />;
 };
 
 export default AdminPage;

@@ -21,7 +21,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, ser
 
   if (!isOpen) return null;
 
-  const sendEmailNotification = async (bookingData: any) => {
+  const sendEmailNotification = async (bookingData: Record<string, string>) => {
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
     const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
     const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
@@ -72,7 +72,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({ isOpen, onClose, ser
       sendEmailNotification(bookingData);
 
       setStep(3); // Success step
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error submitting booking:', err);
       setError('Something went wrong. Please try again.');
     } finally {

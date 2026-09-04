@@ -19,4 +19,4 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
         signInWithPassword: () => Promise.resolve({ error: new Error('Supabase not configured') }),
         signOut: () => Promise.resolve({ error: null }),
       }
-    } as any);
+    } as unknown as ReturnType<typeof createClient>);
